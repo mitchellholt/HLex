@@ -2,6 +2,7 @@ module CodeGenerator(genCode, Language(..)) where
 
 import TreeGenerator (STree(..))
 import Data.Char
+import Snippits.Haskell
 
 data Language = Haskell | Rust
 
@@ -18,8 +19,7 @@ instance Show Code where
 -- make intermediate code for lexer then convert to actual language code with
 -- data types for tokens, token stream, and functions for
 genCode :: Language -> [String] -> [STree] -> String
-genCode Haskell tokenNames = show . interCode tokenNames -- temporary
---genCode Haskell tokenNames = haskellGen . interCode tokenNames
+genCode Haskell tokenNames = haskellGen . interCode tokenNames
 genCode Rust tokenNames = rustGen . interCode tokenNames
 
 
@@ -56,7 +56,24 @@ withPath p (Node c children)
 
 
 haskellGen :: Code -> String
-haskellGen = undefined
+haskellGen code = unlines $
+    [
+        header,
+        makeTokenType (tokens code),
+        apiDefs,
+        fromType
+    ]
+    ++ (fromBranch <$> lexerBranches code)
+    ++ pure fromFinal
+    where
+        fromBranch :: Branch -> String
+        fromBranch branch = case action branch of
+            Shift -> functionDef ++ shift
+            Reduce tokenName -> functionDef ++ reduce tokenName
+            TryReduce tokenName -> functionDef ++ "do\n"
+                ++ tryReduce tokenName (path branch)
+            where
+                functionDef = "from " ++ show (path branch) ++ " = "
 
 
 rustGen :: Code -> String
