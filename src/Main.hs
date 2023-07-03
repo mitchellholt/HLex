@@ -3,7 +3,7 @@ module Main where
 import qualified Data.Map as Map
 import Data.Char (isSpace)
 import System.Directory (doesFileExist)
-import TreeGenerator (STree, makeTree)
+import TreeGenerator (makeTree)
 import CodeGenerator (genCode, Language(..))
 
 
