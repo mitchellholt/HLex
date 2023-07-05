@@ -200,8 +200,8 @@ apiDefs = unlines
     ]
 
 
-shift :: String
-shift = "char >>= from . (++) \"\" . pure"
+shift :: String -> String
+shift path = "char >>= from . (++) " ++ show path ++ " . pure"
 
 
 reduce :: String -> String -> [Char] -> String
@@ -219,13 +219,13 @@ reduce tokenName path followSet =
             ]
 
 
-fromType :: String
-fromType = "from :: String -> TokenStream Token"
+fromInit :: String
+fromInit = unlines
+    [
+        "from :: String -> TokenStream Token",
+        "from \"\" = char >>= from . pure"
+    ]
 
 
 fromFinal :: String
 fromFinal = "from str = backtrack str >> identifier"
-
-
-alphaNum :: String
-alphaNum = "alphaNum"

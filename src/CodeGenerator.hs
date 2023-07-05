@@ -58,14 +58,14 @@ haskellGen code = unlines $
         header,
         makeTokenType (tokens code),
         apiDefs,
-        fromType
+        fromInit
     ]
     ++ (fromBranch <$> lexerBranches code)
     ++ pure fromFinal
     where
         fromBranch :: Branch -> String
         fromBranch branch = case action branch of
-            Shift -> functionDef ++ shift
+            Shift -> functionDef ++ shift (path branch)
             Reduce tokenName followSet -> functionDef ++ "do\n"
                 ++ reduce tokenName (path branch) followSet 
             where
