@@ -1,6 +1,7 @@
 module Snippits.Haskell where
 
 import Snippits.Utils
+import Data.Char
 
 header :: String
 header = unlines
@@ -181,8 +182,13 @@ apiDefs = unlines
         "next = blank >> from \"\"",
         "",
         "",
-        "canReduce :: Maybe Char -> Bool",
-        "canReduce Nothing = True; canReduce (Just c) = not (isAlpha c)",
+        "canReduce :: Maybe Char -> [Char] -> Bool",
+        "canReduce Nothing _ = True",
+        "canReduce (Just c) followSet = not (elem c followSet)",
+        "",
+        "",
+        "alphaNum :: [Char]",
+        "alphaNum = ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9']",
         "",
         "",
         "peek :: TokenStream Token",
@@ -198,17 +204,19 @@ shift :: String
 shift = "char >>= from . (++) \"\" . pure"
 
 
-reduce :: String -> String
-reduce tokenName = "return Token { tokenType = " ++ tokenName ++ ", value = Nothing }"
-
-
-tryReduce :: String -> String -> String
-tryReduce tokenName path = unlines . map (indent 4) $
-    [
-        "v <- lookahead",
-        "if canReduce v then return Token { tokenType = " ++ tokenName ++ ", value = Nothing }",
-        "else char >>= from . (++) " ++ show path ++ " . pure"
-    ]
+reduce :: String -> String -> [Char] -> String
+reduce tokenName path followSet =
+    let
+        followSet' = if all (\x -> isAlpha x || isNumber x) tokenName
+            then "(" ++ show followSet ++ " ++ alphaNum)"
+            else show followSet
+    in
+        unlines . map (indent 4) $
+            [
+                "v <- lookahead",
+                "if canReduce v " ++ followSet' ++ " then return Token { tokenType = " ++ tokenName ++ ", value = Nothing }",
+                "else char >>= from . (++) " ++ show path ++ " . pure"
+            ]
 
 
 fromType :: String
@@ -217,3 +225,7 @@ fromType = "from :: String -> TokenStream Token"
 
 fromFinal :: String
 fromFinal = "from str = backtrack str >> identifier"
+
+
+alphaNum :: String
+alphaNum = "alphaNum"

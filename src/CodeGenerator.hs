@@ -1,20 +1,15 @@
 module CodeGenerator(genCode, Language(..)) where
 
 import TreeGenerator (STree(..))
-import Data.Char
 import Snippits.Haskell
 
 data Language = Haskell | Rust
 
 data Code = Code { lexerBranches :: [Branch], tokens :: [String] }
 data Branch = Branch { action :: Action, path :: String } deriving Show
-data Action = Shift | Reduce String | TryReduce String deriving Show
-
--- for debugging
-instance Show Code where
-    show code = "Tokens: " ++ show (tokens code) ++ "\n"
-        ++ (unlines . fmap show) (lexerBranches code)
-
+-- reduce has a follow set; we can only reduce if the next character (if any)
+-- is not in the follow set
+data Action = Shift | Reduce String [Char] deriving Show
 
 -- make intermediate code for lexer then convert to actual language code with
 -- data types for tokens, token stream, and functions for
@@ -30,29 +25,31 @@ interCode tokenNames trees = Code
 
 
 withPath :: String -> STree -> [Branch]
-withPath _ (Leaf _) = [] -- seems strange but is necessary
+withPath _ (Leaf _) = [] -- need to do all calculation at parent rip
 withPath p (Node c children)
-    | length children == 1 && any isLeaf children =
+    | any isLeaf children =
         let
-            Leaf tokenName = head children -- TODO get rid of warning
+            tokenName = getLeaf . head . dropWhile (not . isLeaf) $ children
+            followSet = map getNode . filter (not . isLeaf) $ children
         in
-            if isAlpha c then
-                pure Branch { action = TryReduce tokenName, path = p ++ pure c }
-            else
-                pure Branch { action = Reduce tokenName, path = p ++ pure c }
-
-    | length children > 1 && any isLeaf children =
-        let
-            Leaf tokenName = head . dropWhile (not . isLeaf) $ children -- TODO get rid of warning
-        in
-            Branch { action = TryReduce tokenName, path = p ++ pure c }
-                : concatMap (withPath (p ++ pure c)) children
-    | otherwise =
-        Branch { action = Shift, path = p ++ pure c } : concatMap (withPath (p ++ pure c)) children
+            Branch { action = Reduce tokenName followSet, path = nextPath }
+                : concatMap (withPath nextPath) children
+    | otherwise = Branch { action = Shift, path = p ++ pure c }
+        : concatMap (withPath nextPath) children
     where
         isLeaf :: STree -> Bool
         isLeaf (Leaf _) = True
-        isLeaf _        = False
+        isLeaf _ = False
+
+        getLeaf :: STree -> String
+        getLeaf (Leaf s) = s
+        getLeaf _ = undefined
+
+        getNode :: STree -> Char
+        getNode (Node ch _) = ch
+        getNode _ = undefined
+
+        nextPath = p ++ pure c
 
 
 haskellGen :: Code -> String
@@ -69,9 +66,8 @@ haskellGen code = unlines $
         fromBranch :: Branch -> String
         fromBranch branch = case action branch of
             Shift -> functionDef ++ shift
-            Reduce tokenName -> functionDef ++ reduce tokenName
-            TryReduce tokenName -> functionDef ++ "do\n"
-                ++ tryReduce tokenName (path branch)
+            Reduce tokenName followSet -> functionDef ++ "do\n"
+                ++ reduce tokenName (path branch) followSet 
             where
                 functionDef = "from " ++ show (path branch) ++ " = "
 
