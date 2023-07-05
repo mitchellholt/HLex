@@ -191,12 +191,15 @@ apiDefs = unlines
         "alphaNum = ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9']",
         "",
         "",
-        "peek :: TokenStream Token",
+        "peek :: TokenStream (Maybe Token)",
         "peek = do",
-        "    str <- modify id",
-        "    tok <- next",
-        "    _ <- modify (const str)",
-        "    return tok"
+        "    v <- modify id",
+        "    case v of",
+        "        \"\" -> return Nothing",
+        "        str -> do",
+        "            tok <- next",
+        "            _ <- modify (const str)",
+        "            return (Just tok)"
     ]
 
 
