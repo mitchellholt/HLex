@@ -25,6 +25,9 @@ common warnings
     ghc-options: -Wall
 
 executable HLex
+    -- Import common warning flags.
+    import:           warnings
+
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
