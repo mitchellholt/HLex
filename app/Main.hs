@@ -1,7 +1,7 @@
 module Main where
 
 import System.Environment
-import System.Exit
+import Data.Void (Void)
 
 data Filetype = Haskell | Rust | C deriving Show
 
@@ -12,12 +12,20 @@ data Args = Args
     , debugOutput :: Bool
     } deriving Show
 
+data SuffixTree = Node Char [SuffixTree] | Leaf Char
+
+type Code = Void -- todo make this
+
+
 main :: IO ()
 main = do
     parsedArgs <- processArgs <$> getArgs
     case parsedArgs of
         Left errStr -> putStrLn errStr
-        Right args -> print args
+        Right args -> do
+            print args
+            code <- genCode (fileType args) . buildTree . lines <$> readFile (inFile args)
+            print code
 
 
 -- Check that the two mandatory arguments inFile, outFile (in that order) are
@@ -27,3 +35,12 @@ main = do
 -- If for any reason parsing fails, create return an appropriate error string
 processArgs :: [String] -> Either String Args
 processArgs = undefined
+
+
+buildTree :: [String] -> SuffixTree
+buildTree = undefined
+
+
+genCode :: Filetype -> SuffixTree -> Code
+genCode = undefined
+
