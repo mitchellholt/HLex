@@ -9,12 +9,32 @@ data SuffixTreeChild = Node Char [SuffixTreeChild] | Leaf String
 
 data Code = Code
     { stateId :: Int
-    , transitions :: [(Char, Code)]
     , output :: Maybe String
+    , transitions :: [(Char, Code)]
     }
 
 instance Show Code where
-    show = undefined -- TODO
+    show c =
+        let
+            titleStr = "State " ++ (show . stateId) c ++ ":\n"
+            outputStr = case output c of
+                Nothing -> ""
+                Just s  -> "\tReturn" ++ s ++ "\n"
+            transitionsStr = concatMap
+                (\(chr, code) ->
+                    "\tGo to "
+                    ++ (show . stateId) code
+                    ++ " on "
+                    ++ show chr
+                    ++ "\n"
+                )
+                (transitions c) -- empty iff outputStr is not empty
+        in
+            titleStr
+                ++ outputStr
+                ++ transitionsStr
+                ++ "\n"
+                ++ concatMap show (transitions c)
 
 
 -- Dave
@@ -61,5 +81,5 @@ nextID :: State Int Int
 nextID = get <* modify (+1)
 
 
-toLanguage :: Filetype -> Code -> String
+toLanguage :: Filetype -> Code -> String -- TODO, last thing to work on
 toLanguage = undefined
