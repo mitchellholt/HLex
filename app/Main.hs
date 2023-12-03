@@ -20,7 +20,7 @@ main = do
         Left errStr -> putStrLn errStr >> exitWith (ExitFailure 1)
         Right args -> do
             print args
-            code <- genCode (fileType args) . buildTree . lines <$> readFile (inFile args)
+            code <- genCode . buildTree . lines <$> readFile (inFile args)
             when (debugOutput args) (print code)
             writeFile (outFile args) (toLanguage (fileType args) code)
             exitSuccess
